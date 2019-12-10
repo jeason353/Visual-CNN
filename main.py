@@ -62,6 +62,7 @@ def train(net, cuda=False):
         net.train()
         for i, data in enumerate(train_loader):
             inputs, labels = data
+            # print(type(labels))
             # print(inputs.size())
             inputs = torch.autograd.Variable(inputs)
             labels = torch.autograd.Variable(labels)
