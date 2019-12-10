@@ -5,26 +5,27 @@ import torch.nn as nn
 from torchvision.transforms import transforms
 import numpy as np
 
+import sys
 import os
 import pdb
 
 from models import net
 
-from data import CIFAR100
 
 np.random.seed(0)
 torch.manual_seed(1)
+torch.cuda.set_device(1)
 
 BATCH_SIZE = 64
 LEARNING_RATE = 1e-2
-EPOCHS = 5
+EPOCHS = 20
 
 def weight_init(layer):
     if isinstance(layer, nn.Linear):
         nn.init.xavier_normal_(layer.weight)
         nn.init.constant_(layer.bias, 0)
     elif isinstance(layer, nn.Conv2d):
-        nn.init.normal_(layer.weight, std=0.01)
+        nn.init.xavier_normal_(layer.weight)
 
 def compute_accuracy(pred, label):
     pred = pred.cpu().data.numpy()
@@ -33,29 +34,33 @@ def compute_accuracy(pred, label):
     return np.mean(np.float32(equal))
 
 def train(net, cuda=False):
+    # file = open('train_log.txt', 'w')
+    # sys.stdout = file
     if cuda:
         net = net.cuda()
     # net.train()
 
-    if os.path.isfile('model.pth'):
-        net.load_state_dict(torch.load('model.pth'))
+    # load model if exist
+    # if os.path.isfile('model.pth'):
+    #     net.load_state_dict(torch.load('model.pth'))
 
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    train_data = torchvision.datasets.CIFAR10(root='Cifar-10', train=True, transform=transforms.Compose([
+    train_data = torchvision.datasets.CIFAR10(root='Cifar-10', train=True, download=True, transform=transforms.Compose([
         transforms.RandomHorizontalFlip(),
         transforms.RandomCrop(32, 4),
         transforms.ToTensor(),
         normalize,
     ]))
-    test_data = torchvision.datasets.CIFAR10(root='Cifar-10', train=False, transform=transforms.Compose([
+    test_data = torchvision.datasets.CIFAR10(root='Cifar-10', train=False, download=True, transform=transforms.Compose([
         transforms.ToTensor(),
         normalize,
     ]))
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
     test_loader = torch.utils.data.DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False)
     
-    optimizer = optim.SGD(net.parameters(), lr=0.0001, momentum=0.9)
-    # optimizer = optim.Adam(net.parameters(), lr=0.001)
+    # optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9)
+    optimizer = optim.AdamW(net.parameters(), lr=0.001)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, [11, 16], gamma=0.1)
     criterion = nn.CrossEntropyLoss()
 
     for epoch in range(1, EPOCHS + 1):
@@ -83,6 +88,9 @@ def train(net, cuda=False):
             if i % 100 == 0:
                 accuracy = compute_accuracy(outputs, labels)
                 print("Epoch[{}/{}] iter {:>3d}  loss:{:.4f}  accuracy:{:.4f}".format(epoch, EPOCHS, i, training_loss, accuracy))
+        
+        lr = scheduler.get_lr()[0]
+        scheduler.step()
 
         net.eval()
         accuracys = []
@@ -96,14 +104,16 @@ def train(net, cuda=False):
                 inputs, labels = inputs.cuda(), labels.cuda()
             outputs = net(inputs)
             accuracys.append(compute_accuracy(outputs, labels))
-        print('------loss on the test dataset: {:.4f}------ '.format(np.mean(accuracys)))
+        print('lr={},---loss on the test dataset: {:.4f}------ '.format(lr, np.mean(accuracys)))
+        # print('------loss on the test dataset: {:.4f}------ '.format(np.mean(accuracys)))
             
     torch.save(net.state_dict(), 'model.pth')
+    # file.close()
 
 
 if __name__ == '__main__':
     net = net()
-    # net.apply(weight_init)
+    net.apply(weight_init)
     # print(net.features)
     # pdb.set_trace()
     train(net, torch.cuda.is_available())
