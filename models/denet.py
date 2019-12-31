@@ -8,55 +8,42 @@ class denet(nn.Module):
             # layer 1
             nn.MaxUnpool2d(2, stride=2),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(512),
             nn.ConvTranspose2d(512, 512, 3, stride=1, padding=1),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(512),
             nn.ConvTranspose2d(512, 512, 3, stride=1, padding=1),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(512),
             nn.ConvTranspose2d(512, 512, 3, stride=1, padding=1),
 
             # layer 2
             nn.MaxUnpool2d(2, stride=2),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(512),
             nn.ConvTranspose2d(512, 512, 3, stride=1, padding=1),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(512),
             nn.ConvTranspose2d(512, 512, 3, stride=1, padding=1),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(512),
             nn.ConvTranspose2d(512, 256, 3, stride=1, padding=1),
 
             # layer 3
             nn.MaxUnpool2d(2, stride=2),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(256),
             nn.ConvTranspose2d(256, 256, 3, stride=1, padding=1),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(256),
             nn.ConvTranspose2d(256, 256, 3, stride=1, padding=1),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(256),
             nn.ConvTranspose2d(256, 128, 3, stride=1, padding=1),
 
             # layer 4
             nn.MaxUnpool2d(2, stride=2),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(128),
             nn.ConvTranspose2d(128, 128, 2, stride=1, padding=1),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(128),
             nn.ConvTranspose2d(128, 64, 2, stride=1, padding=1),
 
             # layer 5
             nn.MaxUnpool2d(2, stride=2),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(64),
             nn.ConvTranspose2d(64, 64, 3, stride=1, padding=1),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(64),
             nn.ConvTranspose2d(64, 3, 3, stride=1, padding=1)
         )
 
@@ -78,10 +65,6 @@ class denet(nn.Module):
         for i in range(idx, len(self.features)):
             # print(x.size(), self.features[i])
             if isinstance(self.features[i], nn.MaxUnpool2d):
-                # if len(self.features) - 1 - i > 0:
-                #     x = self.features[i](x, pool_indices[len(self.features)-1-i], output_size=pool_indices[len(self.features)-2-i].size())
-                # else:
-                #     x = self.features[i](x, pool_indices[len(self.features)-1-i], output_size=pool_indices[len(self.features)-1-i].size()*2)
                 x = self.features[i](x, pool_indices[len(self.features)-1-i])
             else:
                 x = self.features[i](x)

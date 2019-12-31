@@ -27,23 +27,18 @@ def load_image(path):
     img.unsqueeze_(0)
     return img
 
-# def store_feature_maps(model):
-#     def hook(module, input, output, key):
-#         if isinstance(module, nn.MaxPool2d):
-#             model.feature_maps[key] = output[0]
-#         else:
-#             model.feature_maps[key] = output
 
 if __name__ == '__main__':
-    img = load_image('data/test.jpg')
+    img = load_image('data/cat.jpg')
     model = net()
-    # store_feature_maps(model)
-    model.load_state_dict(torch.load('vgg16_bn-6c64b313.pth'))
+
+    model.load_state_dict(torch.load('vgg16-397923af.pth'))
     de_model = denet(model)
     out = model(img)
+    
 
-    feature_map = model.feature_maps[20].clone()
-    # print(model.feature_maps[20].size())
+    feature_map = model.feature_maps[10].clone()
+
     max_lst = []
     for i in range(feature_map.size()[1]):
         max_lst.append(feature_map[0,i,:,:].max())
@@ -55,12 +50,11 @@ if __name__ == '__main__':
     else:
         feature_map[0, :max_loc, :, :] = 0
         feature_map[0, max_loc:, :, :] = 0
-    # print(feature_map)
+
     with torch.no_grad():
-        img_1 = de_model(feature_map, 23, model.pool_indices)
+        img_1 = de_model(feature_map, 20, model.pool_indices)
     img_1 = img_1.numpy()[0].transpose(1,2,0)
     img_1 = (img_1 - img_1.min()) / (img_1.max() - img_1.min()) * 255
-    img_1 = img_1.astype(np.uint8)
-    print(img_1.shape)
+    img_1 = (img_1+img_1.min()).astype(np.uint8)
     cv2.imshow('image', img_1)
     cv2.waitKey()
